@@ -1,89 +1,73 @@
 # a2-models
 
-DSA 8401 MSc Data Science & Analytics — Assignment 2: *The Cost of Being Wrong*
+DSA 8401, MSc Data Science & Analytics, Assignment 2: The Cost of Being Wrong.
 
-**Full report:** [`report/A2_Report.pdf`](report/A2_Report.pdf)
+The full write-up is in [`Report/A2_Report.pdf`](Report/A2_Report.pdf). This README is just a guide to the code behind it.
 
-## ⚠️ Note on dataset scope (read first)
+## What this project actually does
 
-This assignment's brief is written for a **loan/credit-default** use case (borrowers,
-CBK Digital Credit Providers Regulations 2022). Our actual Assignment 1 dataset is
-**mobile-money transaction fraud detection** (`is_fraud`, ~8.4% positive rate,
-transaction-level). This mismatch was flagged with the course team before submission.
-We apply the same cost-sensitive framework to the data we were given, with an explicit
-mapping documented in full in the report's Introduction:
+The goal is to build a model that scores a mobile money transaction for fraud risk, then pick the exact point at which that score is treated as fraud, based on what each type of mistake actually costs rather than a default 50 percent cutoff. Everything in `src` builds toward that, from cleaning the data through to a final, reloadable model.
 
-| Brief's term | Mapped to |
-|---|---|
-| Missed default (KES 10,000) | Missed fraudulent transaction |
-| Wrongly rejected good borrower (KES 800) | Legitimate transaction wrongly flagged |
-| Tenure band | `account_age_days` (days since first observed transaction) |
-| Region | used as-is |
-| CBK Digital Credit Providers Regulations | CBK fraud/AML/cybersecurity guidance + Data Protection Act 2019 |
+One thing worth explaining upfront. The assignment brief is written around a loan default scenario, borrowers, missed defaults, the CBK Digital Credit Providers Regulations. The dataset we actually have from Assignment 1 is mobile money transaction fraud, not lending. We raised this with the course team before submitting, and rather than force the numbers into a story that doesn't fit, we kept the cost logic the assignment asks for and applied it to the problem we actually have. A missed fraud case stands in for a missed default, a wrongly flagged transaction stands in for a wrongly rejected borrower, and so on. The full reasoning behind that mapping is in the report's introduction, not repeated here.
 
-## What's in this repo
+## How the repo is organised
 
 ```
 a2-models/
 ├── data/
-│   ├── raw/mobile_money_statements.csv     # original A1 input, unmodified
-│   └── processed/model_data.csv            # A1's engineered features, reproduced exactly (src/preprocess.py)
+│   ├── raw/mobile_money_statements.csv     original Assignment 1 input, untouched
+│   └── processed/model_data.csv            output of src/preprocess.py
 ├── src/
-│   ├── preprocess.py      # A1 feature engineering, reproduced faithfully (excludes the 2 known leakage columns)
-│   ├── cv.py               # purged/blocked time-series CV with a 30-day embargo
-│   ├── models.py            # logistic regression / random forest / XGBoost comparison
-│   ├── cost.py               # cost-based threshold search (KES 10,000 FN / KES 800 FP)
-│   ├── imbalance.py           # class weighting vs SMOTE, + a deliberate leakage demonstration
-│   ├── tuning.py                # Optuna study (60+ trials, MedianPruner), SQLite-backed
-│   ├── calibration.py            # reliability diagrams, Brier score, threshold recalculation
-│   ├── final_model.py             # tuned XGBoost evaluated on full CV + cost + calibration
-│   ├── fairness.py                 # SHAP (global+local) + subgroup fairness metrics
-│   └── final_pipeline.py            # the single deployable end-to-end sklearn Pipeline
+│   ├── preprocess.py       reproduces Assignment 1's feature engineering, leaves out the two known leakage columns
+│   ├── cv.py                purged, blocked time-series split with a 30 day gap
+│   ├── models.py             trains and compares logistic regression, random forest, XGBoost
+│   ├── cost.py                searches for the cost-minimising decision threshold
+│   ├── imbalance.py            compares class weighting against SMOTE, including a leakage demo
+│   ├── tuning.py                 Optuna search over XGBoost's settings, saved to SQLite
+│   ├── calibration.py             checks and fixes how trustworthy the model's probabilities are
+│   ├── final_model.py              the tuned model evaluated properly, with cost and calibration applied
+│   ├── fairness.py                  SHAP explanations and a fairness check across regions
+│   └── final_pipeline.py             builds the one file that does preprocessing and prediction together
 ├── outputs/
-│   ├── figures/            # all plots referenced in the report
-│   ├── tables/              # all CSV result tables
-│   ├── optuna_study.db       # full Optuna trial history (SQLite)
-│   ├── final_fraud_pipeline.joblib     # the saved, reloadable production pipeline
-│   └── final_pipeline_metadata.json     # threshold, params, feature list
-├── report/
-│   ├── A2_Report.pdf          # the final report (5 pages: cover + 4 content)
-│   └── latex/main.tex          # LaTeX source - recompile with pdflatex main.tex
+│   ├── figures/             every chart used in the report
+│   ├── tables/               every results table as csv
+│   ├── optuna_study.db        the full tuning history
+│   ├── final_fraud_pipeline.joblib   the saved, ready to reload model
+│   └── final_pipeline_metadata.json   what threshold and settings it uses
+├── Report/
+│   ├── A2_Report.pdf          the final report
+│   └── latex/main.tex          its LaTeX source
 ├── requirements.txt
 └── README.md
 ```
 
-## Reproducing this from a fresh clone
+## Running it yourself
+
+Each script in `src` picks up where the last one left off, so they're meant to be run in this order.
 
 ```bash
 pip install -r requirements.txt
 
 cd src
-python preprocess.py          # data/raw -> data/processed/model_data.csv
-python models.py                # baseline model comparison table
-python cost.py                    # cost-based threshold search
-python calibration.py               # reliability diagrams + Brier scores
-python imbalance.py                   # class weighting vs SMOTE + leakage demo
-python tuning.py                        # Optuna study (resumable via SQLite; run multiple
-                                          # times if your machine needs it in smaller chunks -
-                                          # it continues from outputs/optuna_study.db)
-python final_model.py                     # tuned XGBoost, full evaluation
-python fairness.py                          # SHAP + subgroup fairness
-python final_pipeline.py                      # builds & reload-tests the deployable pipeline
+python preprocess.py       # turns the raw csv into the cleaned, feature-engineered dataset
+python models.py           # trains the three baseline models and compares them
+python cost.py             # finds the cost-optimal decision threshold
+python calibration.py      # checks calibration and recalculates the threshold on fixed probabilities
+python imbalance.py        # compares imbalance-handling methods, including the leakage example
+python tuning.py           # runs the Optuna search, safe to rerun if it gets interrupted partway
+python final_model.py      # evaluates the tuned model properly
+python fairness.py         # generates the SHAP and fairness results
+python final_pipeline.py   # builds and tests the final saved model
 
-cd ../report/latex
-pdflatex main.tex                 # produces latex/main.pdf
-cp main.pdf ../A2_Report.pdf       # (optional) update the committed copy
+cd ../Report/latex
+pdflatex main.tex          # rebuilds the report PDF from source
+cp main.pdf ../A2_Report.pdf
 ```
 
-All randomness is seeded (`random_state=42`) for reproducibility.
+Everything is seeded with `random_state=42`, so rerunning it should give you the same numbers.
 
-## Key results (see report for full discussion)
+## What it actually found
 
-- **Final model:** Optuna-tuned XGBoost — PR-AUC 0.1191 ± 0.0040 (best and most stable of 4 models compared)
-- **Decision threshold:** 0.08 on isotonic-calibrated probability (matches the theoretical
-  cost-optimal threshold of ≈0.074 for this cost ratio)
-- **Evaluation:** purged/blocked time-series CV, 5 folds, 30-day embargo gap
-- **Leakage demonstration:** resampling before the train/test split inflated PR-AUC to a
-  fabricated 1.00, vs. ~0.10 with correct methodology
-- **Fairness finding:** false-negative rate varies from 36.8% (Mwanza) to 51.4% (Arusha)
-  across regions — flagged for further investigation before deployment
+The model that ended up performing best was a tuned XGBoost, PR-AUC of 0.1191, and it was also the most consistent across the five time-based folds, which mattered more to us than a slightly higher score with more swing to it. It runs at a decision threshold of 0.08 on calibrated probabilities, which lines up closely with the 0.074 you'd get from the cost ratio directly, that agreement is a big part of why we trust the number.
+
+Two other things worth knowing before opening the code. First, we deliberately broke our own methodology once to prove a point, resampling the data before splitting it into train and test gave a PR-AUC of 1.00, which looks perfect and is actually just leakage, done correctly the same comparison gives about 0.10. Second, the model doesn't perform equally well everywhere, it misses real fraud in Arusha at 51.4 percent versus 36.8 percent in Mwanza, and that gap is flagged in the report as something to investigate before this goes anywhere near production.
