@@ -1,0 +1,4 @@
+method,pr_auc,roc_auc
+class_weighting,0.0983,0.5368
+smote_correct_inside_fold,0.1023,0.5533
+smote_leaky_before_split,1.0,

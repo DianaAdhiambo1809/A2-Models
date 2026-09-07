@@ -1,0 +1,2 @@
+model,pr_auc_mean,pr_auc_std,roc_auc_mean,roc_auc_std,naive_cost,naive_fn,naive_fp,best_threshold_raw,best_cost_raw,savings_per_1000_raw,brier_raw,brier_isotonic,best_threshold_isotonic,best_cost_isotonic,savings_per_1000_isotonic
+xgboost_tuned,0.1191,0.004,0.5928,0.0079,103784400,7179,39993,0.47000000000000003,101078400.0,18021.737972188184,0.23944905295782948,0.0759455531000467,0.08,101238800.0,16953.48713303852

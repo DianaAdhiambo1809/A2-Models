@@ -1,0 +1,6 @@
+,pr_auc,pr_auc,roc_auc,roc_auc
+,mean,std,mean,std
+model,,,,
+logistic_regression,0.1178,0.003,0.5918,0.0073
+random_forest,0.1058,0.0072,0.5602,0.0196
+xgboost,0.0983,0.0102,0.5368,0.0241

@@ -1,0 +1,42 @@
+{
+  "model": "XGBoost (Optuna-tuned)",
+  "decision_threshold_on_calibrated_score": 0.08,
+  "note": "Pipeline outputs raw probabilities via .predict_proba(X)[:, 1]. Apply isotonic calibration (see src/calibration.py) before thresholding at FINAL_THRESHOLD for a production decision.",
+  "features_numeric": [
+    "amount_clean",
+    "balance_after",
+    "txn_count_7d",
+    "txn_count_30d",
+    "total_amount_30d",
+    "avg_amount_30d",
+    "cashout_ratio_30d",
+    "debit_ratio_30d",
+    "hours_since_last_txn",
+    "is_night_txn",
+    "day_of_week",
+    "account_age_days",
+    "distinct_devices_30d",
+    "distinct_agents_30d",
+    "device_shared_flag"
+  ],
+  "features_categorical": [
+    "segment",
+    "region"
+  ],
+  "best_params": {
+    "max_depth": 3,
+    "learning_rate": 0.013511736044895105,
+    "n_estimators": 150,
+    "subsample": 0.7746123857872798,
+    "colsample_bytree": 0.84668754703948,
+    "min_child_weight": 19,
+    "gamma": 3.8259898633793843,
+    "reg_alpha": 0.27466579337126534,
+    "reg_lambda": 0.0022438199646130554
+  },
+  "training_rows": 180000,
+  "training_date_range": [
+    "2025-02-06 00:46:00",
+    "2026-07-31 22:11:42"
+  ]
+}
